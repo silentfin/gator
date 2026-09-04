@@ -1,18 +1,30 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"os"
 
+	_ "github.com/lib/pq"
 	"github.com/silentfin/gator/internal/config"
+	"github.com/silentfin/gator/internal/database"
 )
 
 func main() {
 	var s state
 	userConfig := config.Read()
 	s.conf = &userConfig
+	db, err := sql.Open("postgres", s.conf.DbUrl)
+	if err != nil {
+		fmt.Printf("error occured: %v\n", &err)
+	}
+	dbQueries := database.New(db)
+	s.db = dbQueries
+
 	availableCommands := commands{cmds: map[string]func(*state, command) error{}}
 	availableCommands.register("login", handlerLogin)
+	availableCommands.register("register", handlerRegister)
+
 	userArgs := os.Args
 	if len(userArgs) < 2 {
 		fmt.Println("insufficient args provided")

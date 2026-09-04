@@ -1,13 +1,19 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"os"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/silentfin/gator/internal/config"
+	"github.com/silentfin/gator/internal/database"
 )
 
 type state struct {
 	conf *config.Config
+	db   *database.Queries
 }
 
 type command struct {
@@ -35,9 +41,38 @@ func handlerLogin(s *state, cmd command) error {
 	if len(cmd.args) == 0 {
 		return fmt.Errorf("Empty args")
 	}
-	if err := s.conf.SetUser(cmd.args[0]); err != nil {
+	username := cmd.args[0]
+	if _, err := s.db.GetUser(context.Background(), username); err != nil {
+		os.Exit(1)
 		return err
 	}
-	fmt.Printf("User: %s has been set!\n", cmd.args[0])
+
+	if err := s.conf.SetUser(username); err != nil {
+		return err
+	}
+	fmt.Printf("User: %s has been set!\n", username)
+	return nil
+}
+
+func handlerRegister(s *state, cmd command) error {
+	username := cmd.args[0]
+	if len(cmd.args) == 0 {
+		return fmt.Errorf("no name provided")
+	}
+
+	if _, err := s.db.GetUser(context.Background(), username); err == nil {
+		os.Exit(1)
+	}
+	_, err := s.db.CreateUser(context.Background(),
+		database.CreateUserParams{
+			ID:        uuid.New(),
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+			Name:      username})
+	if err != nil {
+		return err
+	}
+	fmt.Printf("user created: %s\n", username)
+	s.conf.SetUser(username)
 	return nil
 }
