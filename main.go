@@ -24,6 +24,7 @@ func main() {
 	availableCommands := commands{cmds: map[string]func(*state, command) error{}}
 	availableCommands.register("login", handlerLogin)
 	availableCommands.register("register", handlerRegister)
+	availableCommands.register("reset", handleReset)
 
 	userArgs := os.Args
 	if len(userArgs) < 2 {

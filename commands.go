@@ -76,3 +76,12 @@ func handlerRegister(s *state, cmd command) error {
 	s.conf.SetUser(username)
 	return nil
 }
+
+func handleReset(s *state, cmd command) error {
+	if err := s.db.Reset(context.Background()); err != nil {
+		os.Exit(1)
+		return err
+	}
+	fmt.Println("reset successful!")
+	return nil
+}
