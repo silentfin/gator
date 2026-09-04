@@ -85,3 +85,19 @@ func handleReset(s *state, cmd command) error {
 	fmt.Println("reset successful!")
 	return nil
 }
+
+func handleUsers(s *state, cmd command) error {
+	users, err := s.db.GetUsers(context.Background())
+	if err != nil {
+		return err
+	}
+	curentUser := s.conf.CurrentUserName
+	for _, user := range users {
+		if user.Name == curentUser {
+			fmt.Printf("* %s (current)\n", user.Name)
+		} else {
+			fmt.Printf("* %s\n", user.Name)
+		}
+	}
+	return nil
+}
