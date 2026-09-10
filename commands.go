@@ -134,11 +134,31 @@ func handleAddFeed(s *state, cmd command) error {
 	if err != nil {
 		return err
 	}
-
 	fmt.Println("Name: ", feed.Name)
 	fmt.Println("URL: ", feed.Url)
 	fmt.Println("user_id: ", feed.UserID)
+	fmt.Println("\nadded successful!")
 
 	return nil
 
+}
+
+func handleFeeds(s *state, cmd command) error {
+	feeds, err := s.db.GetFeeds(context.Background())
+	if err != nil {
+		return nil
+	}
+	for _, feed := range feeds {
+		name := feed.Name
+		url := feed.Url
+		user_id := feed.UserID
+		userName, err := s.db.GetUserFromID(context.Background(), user_id)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Name: %s | URL: %s | userName: %s\n", name, url, userName.Name)
+
+	}
+	return nil
 }

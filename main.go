@@ -28,6 +28,7 @@ func main() {
 	availableCommands.register("users", handleUsers)
 	availableCommands.register("agg", handleAgg)
 	availableCommands.register("addfeed", handleAddFeed)
+	availableCommands.register("feeds", handleFeeds)
 
 	userArgs := os.Args
 	if len(userArgs) < 2 {
