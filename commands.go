@@ -80,6 +80,7 @@ func handlerRegister(s *state, cmd command) error {
 
 func handleReset(s *state, cmd command) error {
 	if err := s.db.Reset(context.Background()); err != nil {
+		fmt.Printf("%v\n", err)
 		os.Exit(1)
 		return err
 	}
@@ -111,4 +112,33 @@ func handleAgg(s *state, cmd command) error {
 	}
 	fmt.Println(feedData)
 	return nil
+}
+
+func handleAddFeed(s *state, cmd command) error {
+	if len(cmd.args) != 2 {
+		return fmt.Errorf("insufficient arguments, needs 2 args")
+	}
+	name := cmd.args[0]
+	url := cmd.args[1]
+	curentUser := s.conf.CurrentUserName
+	userInDB, err := s.db.GetUser(context.Background(), curentUser)
+	if err != nil {
+		return err
+	}
+
+	feed, err := s.db.CreateFeed(context.Background(), database.CreateFeedParams{
+		Name:   name,
+		Url:    url,
+		UserID: userInDB.ID,
+	})
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Name: ", feed.Name)
+	fmt.Println("URL: ", feed.Url)
+	fmt.Println("user_id: ", feed.UserID)
+
+	return nil
+
 }
