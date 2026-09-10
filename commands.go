@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/silentfin/gator/internal/config"
 	"github.com/silentfin/gator/internal/database"
+	"github.com/silentfin/gator/internal/rss"
 )
 
 type state struct {
@@ -99,5 +100,15 @@ func handleUsers(s *state, cmd command) error {
 			fmt.Printf("* %s\n", user.Name)
 		}
 	}
+	return nil
+}
+
+func handleAgg(s *state, cmd command) error {
+	url := cmd.args[0]
+	feedData, err := rss.FetchFeed(context.Background(), url)
+	if err != nil {
+		return err
+	}
+	fmt.Println(feedData)
 	return nil
 }
