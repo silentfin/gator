@@ -211,3 +211,18 @@ func middlewareLoggedIn(handler func(*state, command, database.User) error) func
 		return handler(s, cmd, currentUser)
 	}
 }
+
+func handleUnfollow(s *state, cmd command, user database.User) error {
+	feed, err := s.db.GetFeedFromURL(context.Background(), cmd.args[0])
+	if err != nil {
+		return err
+	}
+	err = s.db.Unfollow(context.Background(), database.UnfollowParams{
+		UserID: user.ID,
+		FeedID: feed.ID,
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
