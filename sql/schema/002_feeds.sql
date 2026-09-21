@@ -3,7 +3,9 @@ CREATE TABLE feeds (
     id uuid primary key,
     name TEXT NOT NULL,
     url TEXT NOT NULL UNIQUE,
-    user_id uuid NOT NULL references users(id) ON DELETE CASCADE
+    user_id uuid NOT NULL references users(id) ON DELETE CASCADE,
+    created_at timestamp NOT NULL,
+    updated_at timestamp NOT NULL
 );
 
 

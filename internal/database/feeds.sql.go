@@ -7,26 +7,31 @@ package database
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
 
 const createFeed = `-- name: CreateFeed :one
-INSERT INTO feeds (id, name, url, user_id)
+INSERT INTO feeds (id, name, url, user_id, created_at, updated_at)
 VALUES (
     $1,
     $2,
     $3,
-    $4
+    $4,
+    $5,
+    $6
 )
-RETURNING id, name, url, user_id
+RETURNING id, name, url, user_id, created_at, updated_at, last_fetched_at
 `
 
 type CreateFeedParams struct {
-	ID     uuid.UUID
-	Name   string
-	Url    string
-	UserID uuid.UUID
+	ID        uuid.UUID
+	Name      string
+	Url       string
+	UserID    uuid.UUID
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 func (q *Queries) CreateFeed(ctx context.Context, arg CreateFeedParams) (Feed, error) {
@@ -35,6 +40,8 @@ func (q *Queries) CreateFeed(ctx context.Context, arg CreateFeedParams) (Feed, e
 		arg.Name,
 		arg.Url,
 		arg.UserID,
+		arg.CreatedAt,
+		arg.UpdatedAt,
 	)
 	var i Feed
 	err := row.Scan(
@@ -42,12 +49,15 @@ func (q *Queries) CreateFeed(ctx context.Context, arg CreateFeedParams) (Feed, e
 		&i.Name,
 		&i.Url,
 		&i.UserID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.LastFetchedAt,
 	)
 	return i, err
 }
 
 const getFeedFromURL = `-- name: GetFeedFromURL :one
-SELECT id, name, url, user_id FROM feeds where url=$1
+SELECT id, name, url, user_id, created_at, updated_at, last_fetched_at FROM feeds where url=$1
 `
 
 func (q *Queries) GetFeedFromURL(ctx context.Context, url string) (Feed, error) {
@@ -58,12 +68,15 @@ func (q *Queries) GetFeedFromURL(ctx context.Context, url string) (Feed, error) 
 		&i.Name,
 		&i.Url,
 		&i.UserID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.LastFetchedAt,
 	)
 	return i, err
 }
 
 const getFeeds = `-- name: GetFeeds :many
-SELECT id, name, url, user_id FROM feeds
+SELECT id, name, url, user_id, created_at, updated_at, last_fetched_at FROM feeds
 `
 
 func (q *Queries) GetFeeds(ctx context.Context) ([]Feed, error) {
@@ -80,6 +93,9 @@ func (q *Queries) GetFeeds(ctx context.Context) ([]Feed, error) {
 			&i.Name,
 			&i.Url,
 			&i.UserID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.LastFetchedAt,
 		); err != nil {
 			return nil, err
 		}

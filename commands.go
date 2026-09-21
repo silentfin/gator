@@ -105,13 +105,15 @@ func handleUsers(s *state, cmd command) error {
 }
 
 func handleAgg(s *state, cmd command) error {
-	url := cmd.args[0]
-	feedData, err := rss.FetchFeed(context.Background(), url)
+	timeBetweenRequests, err := time.ParseDuration(cmd.args[0])
 	if err != nil {
 		return err
 	}
-	fmt.Println(feedData)
-	return nil
+	fmt.Printf("Collecting feeds every %s\n", timeBetweenRequests)
+	ticker := time.NewTicker(timeBetweenRequests)
+	for ; ; <-ticker.C {
+		scrapeFeeds(s)
+	}
 }
 
 func handleAddFeed(s *state, cmd command, user database.User) error {
@@ -122,10 +124,12 @@ func handleAddFeed(s *state, cmd command, user database.User) error {
 	url := cmd.args[1]
 
 	feed, err := s.db.CreateFeed(context.Background(), database.CreateFeedParams{
-		ID:     uuid.New(),
-		Name:   name,
-		Url:    url,
-		UserID: user.ID,
+		ID:        uuid.New(),
+		Name:      name,
+		Url:       url,
+		UserID:    user.ID,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	})
 	if err != nil {
 		return err
@@ -224,5 +228,28 @@ func handleUnfollow(s *state, cmd command, user database.User) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func scrapeFeeds(s *state) error {
+	nextFeed, err := s.db.GetNextFeedToFetch(context.Background())
+	if err != nil {
+		return err
+	}
+
+	markedFetched, err := s.db.MarkFeedFetched(context.Background(), nextFeed.ID)
+	if err != nil {
+		return err
+	}
+
+	feeds, err := rss.FetchFeed(context.Background(), markedFetched.Url)
+	if err != nil {
+		return err
+	}
+
+	for _, item := range feeds.Channel.Item {
+		fmt.Printf("Title: %s\n", item.Title)
+	}
+
 	return nil
 }
