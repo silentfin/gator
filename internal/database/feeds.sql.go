@@ -12,30 +12,58 @@ import (
 )
 
 const createFeed = `-- name: CreateFeed :one
-INSERT INTO feeds (name, url, user_id)
+INSERT INTO feeds (id, name, url, user_id)
 VALUES (
     $1,
     $2,
-    $3
+    $3,
+    $4
 )
-RETURNING name, url, user_id
+RETURNING id, name, url, user_id
 `
 
 type CreateFeedParams struct {
+	ID     uuid.UUID
 	Name   string
 	Url    string
 	UserID uuid.UUID
 }
 
 func (q *Queries) CreateFeed(ctx context.Context, arg CreateFeedParams) (Feed, error) {
-	row := q.db.QueryRowContext(ctx, createFeed, arg.Name, arg.Url, arg.UserID)
+	row := q.db.QueryRowContext(ctx, createFeed,
+		arg.ID,
+		arg.Name,
+		arg.Url,
+		arg.UserID,
+	)
 	var i Feed
-	err := row.Scan(&i.Name, &i.Url, &i.UserID)
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Url,
+		&i.UserID,
+	)
+	return i, err
+}
+
+const getFeedFromURL = `-- name: GetFeedFromURL :one
+SELECT id, name, url, user_id FROM feeds where url=$1
+`
+
+func (q *Queries) GetFeedFromURL(ctx context.Context, url string) (Feed, error) {
+	row := q.db.QueryRowContext(ctx, getFeedFromURL, url)
+	var i Feed
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Url,
+		&i.UserID,
+	)
 	return i, err
 }
 
 const getFeeds = `-- name: GetFeeds :many
-SELECT name, url, user_id FROM feeds
+SELECT id, name, url, user_id FROM feeds
 `
 
 func (q *Queries) GetFeeds(ctx context.Context) ([]Feed, error) {
@@ -47,7 +75,12 @@ func (q *Queries) GetFeeds(ctx context.Context) ([]Feed, error) {
 	var items []Feed
 	for rows.Next() {
 		var i Feed
-		if err := rows.Scan(&i.Name, &i.Url, &i.UserID); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Url,
+			&i.UserID,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

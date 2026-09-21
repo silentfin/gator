@@ -127,6 +127,7 @@ func handleAddFeed(s *state, cmd command) error {
 	}
 
 	feed, err := s.db.CreateFeed(context.Background(), database.CreateFeedParams{
+		ID:     uuid.New(),
 		Name:   name,
 		Url:    url,
 		UserID: userInDB.ID,
@@ -134,13 +135,21 @@ func handleAddFeed(s *state, cmd command) error {
 	if err != nil {
 		return err
 	}
+	fmt.Println("ID: ", feed.ID)
 	fmt.Println("Name: ", feed.Name)
 	fmt.Println("URL: ", feed.Url)
 	fmt.Println("user_id: ", feed.UserID)
 	fmt.Println("\nadded successful!")
 
+	followCmd := command{
+		name: "follow",
+		args: []string{url},
+	}
+	err = handleFollow(s, followCmd)
+	if err != nil {
+		return err
+	}
 	return nil
-
 }
 
 func handleFeeds(s *state, cmd command) error {
@@ -159,6 +168,49 @@ func handleFeeds(s *state, cmd command) error {
 
 		fmt.Printf("Name: %s | URL: %s | userName: %s\n", name, url, userName.Name)
 
+	}
+	return nil
+}
+
+func handleFollow(s *state, cmd command) error {
+	if len(cmd.args) < 1 {
+		return fmt.Errorf("insufficient arguments, needs 1 args")
+	}
+	url := cmd.args[0]
+	feed, err := s.db.GetFeedFromURL(context.Background(), url)
+	if err != nil {
+		return fmt.Errorf("feed not found or invalid url")
+	}
+	currentUser, err := s.db.GetUser(context.Background(), s.conf.CurrentUserName)
+	if err != nil {
+		return err
+	}
+	feedFollow, err := s.db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		UserID:    currentUser.ID,
+		FeedID:    feed.ID,
+	})
+	if err != nil {
+		return err
+	}
+	fmt.Printf("FeedName: %s\n", feedFollow.FeedName)
+	fmt.Printf("UserName: %s\n", feedFollow.UserName)
+	return nil
+}
+
+func handleFollowing(s *state, cmd command) error {
+	currentUser, err := s.db.GetUser(context.Background(), s.conf.CurrentUserName)
+	if err != nil {
+		return err
+	}
+	feeds, err := s.db.GetFeedFollowsForUser(context.Background(), currentUser.ID)
+	if err != nil {
+		return err
+	}
+	for _, feed := range feeds {
+		fmt.Printf("Feed Name: %s\n", feed.FeedName)
 	}
 	return nil
 }
