@@ -27,10 +27,10 @@ func main() {
 	availableCommands.register("reset", handleReset)
 	availableCommands.register("users", handleUsers)
 	availableCommands.register("agg", handleAgg)
-	availableCommands.register("addfeed", handleAddFeed)
+	availableCommands.register("addfeed", middlewareLoggedIn(handleAddFeed))
 	availableCommands.register("feeds", handleFeeds)
-	availableCommands.register("follow", handleFollow)
-	availableCommands.register("following", handleFollowing)
+	availableCommands.register("follow", middlewareLoggedIn(handleFollow))
+	availableCommands.register("following", middlewareLoggedIn(handleFollowing))
 
 	userArgs := os.Args
 	if len(userArgs) < 2 {
