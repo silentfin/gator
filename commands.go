@@ -323,6 +323,7 @@ func handleBrowse(s *state, cmd command, user database.User) error {
 	}
 	for _, post := range posts {
 		fmt.Printf("Title: %s\n", post.Title)
+		fmt.Printf("URL: %s\n", post.Url)
 	}
 	return nil
 }
