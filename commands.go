@@ -327,3 +327,25 @@ func handleBrowse(s *state, cmd command, user database.User) error {
 	}
 	return nil
 }
+
+func handleHelp(s *state, cmd command) error {
+	fmt.Println("Gator is a command-line RSS feed aggregator that fetches and stores posts.\n")
+	fmt.Println(`Usage:
+	gator <command> [arguments]
+`)
+	fmt.Println(`Available commands:
+	register <name>          Create a user
+	login <name>             Set the current user
+	users                    List all users
+	reset                    Delete all database data
+	addfeed <name> <url>     Add and follow a feed
+	feeds                    List feeds
+	follow <url>             Follow an existing feed
+	unfollow <url>           Unfollow a feed
+	following                List followed feeds
+	agg <duration>           Fetch feeds repeatedly, e.g. agg 10s
+	browse [limit]           Show recent posts; defaults to 2
+	help                     Show this message
+`)
+	return nil
+}

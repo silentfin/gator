@@ -33,6 +33,7 @@ func main() {
 	availableCommands.register("following", middlewareLoggedIn(handleFollowing))
 	availableCommands.register("unfollow", middlewareLoggedIn(handleUnfollow))
 	availableCommands.register("browse", middlewareLoggedIn(handleBrowse))
+	availableCommands.register("help", handleHelp)
 
 	userArgs := os.Args
 	if len(userArgs) < 2 {
