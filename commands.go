@@ -2,11 +2,16 @@ package main
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
+	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"github.com/silentfin/gator/internal/config"
 	"github.com/silentfin/gator/internal/database"
 	"github.com/silentfin/gator/internal/rss"
@@ -112,7 +117,10 @@ func handleAgg(s *state, cmd command) error {
 	fmt.Printf("Collecting feeds every %s\n", timeBetweenRequests)
 	ticker := time.NewTicker(timeBetweenRequests)
 	for ; ; <-ticker.C {
-		scrapeFeeds(s)
+		err := scrapeFeeds(s)
+		if err != nil {
+			return err
+		}
 	}
 }
 
@@ -247,9 +255,74 @@ func scrapeFeeds(s *state) error {
 		return err
 	}
 
-	for _, item := range feeds.Channel.Item {
-		fmt.Printf("Title: %s\n", item.Title)
+	var savedFeedCount int
+	layouts := []string{
+		time.RFC1123Z,
+		time.RFC1123,
+		time.RFC822Z,
+		time.RFC822,
+		time.RFC850,
 	}
 
+	for _, item := range feeds.Channel.Item {
+		var pqErr *pq.Error
+		var publishedAtTime time.Time
+		var valid bool
+
+		for _, layout := range layouts {
+			timePublished, err := time.Parse(layout, item.PubDate)
+			if err == nil {
+				publishedAtTime = timePublished
+				valid = true
+				break
+			}
+		}
+
+		_, err = s.db.CreatePost(context.Background(), database.CreatePostParams{
+			ID:          uuid.New(),
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+			Title:       item.Title,
+			Url:         item.Link,
+			Description: sql.NullString{String: item.Description, Valid: item.Description != ""},
+			PublishedAt: sql.NullTime{Time: publishedAtTime, Valid: valid},
+			FeedID:      markedFetched.ID,
+		})
+		if err != nil {
+			if errors.As(err, &pqErr) && pqErr.Code == "23505" {
+				continue
+			} else {
+				log.Printf("error creating post: %v", err)
+				continue
+			}
+		}
+		savedFeedCount++
+	}
+	log.Printf("fetched feed %q saved %d new posts", markedFetched.Name, savedFeedCount)
+	return nil
+}
+
+func handleBrowse(s *state, cmd command, user database.User) error {
+	var limit int
+	var err error
+	if len(cmd.args) == 0 {
+		limit = 2
+	} else {
+		limit, err = strconv.Atoi(cmd.args[0])
+		if err != nil {
+			return err
+		}
+	}
+
+	posts, err := s.db.GetPostsForUser(context.Background(), database.GetPostsForUserParams{
+		UserID: user.ID,
+		Limit:  int32(limit),
+	})
+	if err != nil {
+		return err
+	}
+	for _, post := range posts {
+		fmt.Printf("Title: %s\n", post.Title)
+	}
 	return nil
 }
